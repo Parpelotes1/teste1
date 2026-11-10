@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Notas Ponderada</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for history */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(99, 102, 241, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 min-h-screen flex items-center justify-center p-4 text-slate-100">
+
+    <!-- App Container / Desktop Window -->
+    <div class="w-full max-w-lg bg-slate-900/80 backdrop-blur-xl border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 transform hover:shadow-indigo-500/10">
+        
+        <!-- Window Header (Desktop style) -->
+        <div class="bg-slate-800/80 px-5 py-3.5 flex items-center justify-between border-b border-slate-700/60 select-none">
+            <div class="flex items-center space-x-2">
+                <div class="w-3 h-3 rounded-full bg-rose-500 hover:opacity-80 transition cursor-pointer" title="Fechar"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500 hover:opacity-80 transition cursor-pointer" title="Minimizar"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500 hover:opacity-80 transition cursor-pointer" title="Maximizar"></div>
+            </div>
+            <div class="flex items-center space-x-2 text-slate-400 text-xs font-medium tracking-wide uppercase">
+                <i data-lucide="calculator" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <span>Média Ponderada Pro</span>
+            </div>
+            <div class="w-12"></div> <!-- Spacer for symmetry -->
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="flex border-b border-slate-800 bg-slate-900/40 p-1.5 gap-1 select-none">
+            <button id="tabCalc" onclick="switchTab('calc')" 
+                class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all bg-indigo-600 text-white shadow">
+                <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                <span>Calcular Média</span>
+            </button>
+            <button id="tabTarget" onclick="switchTab('target')" 
+                class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-white hover:bg-slate-800/60">
+                <i data-lucide="target" class="w-3.5 h-3.5"></i>
+                <span>Quanto Preciso Tirar?</span>
+            </button>
+        </div>
+
+        <!-- Window Body -->
+        <div class="p-6 sm:p-8 space-y-6">
+            
+            <!-- Error Banner (Custom Alert) -->
+            <div id="errorBanner" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-300 px-4 py-3 rounded-xl text-sm flex items-center space-x-3 transition-all duration-200">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-rose-400 flex-shrink-0"></i>
+                <span id="errorMessage">Preencha todos os campos corretamente com valores entre 0 e 10.</span>
+            </div>
+
+            <!-- TAB 1: CALCULAR MÉDIA -->
+            <div id="viewCalc" class="space-y-6">
+                <div class="text-center space-y-1">
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+                        Cálculo de Média Final
+                    </h1>
+                    <p class="text-slate-400 text-xs">Fórmula: <code class="text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded font-mono">[(N1 × 1) + (N2 × 2)] ÷ 3</code> | Nota Mínima: 6,0</p>
+                </div>
+
+                <form id="gradeForm" class="space-y-4" onsubmit="event.preventDefault(); calculateGrade();">
+                    <div class="space-y-1.5">
+                        <label for="nota1" class="block text-sm font-medium text-slate-300 flex justify-between items-center">
+                            <span>Nota 1 <span class="text-xs text-slate-500 font-normal">(Peso 1)</span></span>
+                            <span id="val1Display" class="text-xs font-mono text-indigo-400">0.0</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="book-open" class="w-4 h-4"></i>
+                            </div>
+                            <input type="number" id="nota1" step="0.1" min="0" max="10" placeholder="Ex: 7.5" required
+                                class="w-full bg-slate-800/60 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-sm font-medium"
+                                oninput="updateDisplay()">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label for="nota2" class="block text-sm font-medium text-slate-300 flex justify-between items-center">
+                            <span>Nota 2 <span class="text-xs text-slate-500 font-normal">(Peso 2)</span></span>
+                            <span id="val2Display" class="text-xs font-mono text-indigo-400">0.0</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="award" class="w-4 h-4"></i>
+                            </div>
+                            <input type="number" id="nota2" step="0.1" min="0" max="10" placeholder="Ex: 8.0" required
+                                class="w-full bg-slate-800/60 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-sm font-medium"
+                                oninput="updateDisplay()">
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex gap-3">
+                        <button type="submit" 
+                            class="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 transition-all duration-200 flex items-center justify-center space-x-2 text-sm cursor-pointer">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span>Calcular Média</span>
+                        </button>
+                        <button type="button" onclick="resetForm()" 
+                            class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium py-3 px-4 rounded-xl border border-slate-700 transition duration-200 flex items-center justify-center text-sm cursor-pointer" title="Limpar Campos">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Results Section -->
+                <div id="resultSection" class="hidden transform scale-95 opacity-0 transition-all duration-300 space-y-4 pt-2 border-t border-slate-800">
+                    <div id="resultCard" class="p-5 rounded-2xl border flex flex-col sm:flex-row items-center justify-between gap-4 transition-all">
+                        <div class="space-y-1 text-center sm:text-left">
+                            <span class="text-xs font-semibold tracking-wider uppercase text-slate-400">Média Ponderada Final</span>
+                            <div class="flex items-baseline justify-center sm:justify-start space-x-2">
+                                <span id="finalScore" class="text-4xl font-extrabold tracking-tight font-mono text-white">0.0</span>
+                                <span class="text-sm text-slate-400">/ 10.0</span>
+                            </div>
+                        </div>
+
+                        <div id="statusBadge" class="px-4 py-2.5 rounded-xl border flex items-center space-x-2.5 font-semibold text-sm shadow-sm">
+                            <span id="statusIcon"></span>
+                            <span id="statusText">Aguardando</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/40 text-xs space-y-2 text-slate-400">
+                        <div class="flex justify-between">
+                            <span>Cálculo detalhado:</span>
+                            <span id="formulaBreakdown" class="font-mono text-slate-300">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Critério de aprovação:</span>
+                            <span class="text-indigo-300 font-medium">Média mínima de 6,0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: QUANTO PRECISO TIRAR NA N2 -->
+            <div id="viewTarget" class="hidden space-y-6">
+                <div class="text-center space-y-1">
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+                        Nota Necessária na N2
+                    </h1>
+                    <p class="text-slate-400 text-xs">Descubra quanto você precisa tirar na 2ª prova para atingir média 6,0</p>
+                </div>
+
+                <form id="targetForm" class="space-y-4" onsubmit="event.preventDefault(); calculateRequiredN2();">
+                    <div class="space-y-1.5">
+                        <label for="targetN1" class="block text-sm font-medium text-slate-300 flex justify-between items-center">
+                            <span>Sua Nota 1 obtida <span class="text-xs text-slate-500 font-normal">(Peso 1)</span></span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                <i data-lucide="book-open" class="w-4 h-4"></i>
+                            </div>
+                            <input type="number" id="targetN1" step="0.1" min="0" max="10" placeholder="Digite sua Nota 1 (Ex: 5.0)" required
+                                class="w-full bg-slate-800/60 border border-slate-700 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition text-sm font-medium">
+                        </div>
+                    </div>
+
+                    <button type="submit" 
+                        class="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-medium py-3 px-4 rounded-xl shadow-lg shadow-amber-600/20 hover:shadow-amber-600/40 transition-all duration-200 flex items-center justify-center space-x-2 text-sm cursor-pointer">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i>
+                        <span>Calcular Meta para N2</span>
+                    </button>
+                </form>
+
+                <!-- Target Result Card -->
+                <div id="targetResultSection" class="hidden transform scale-95 opacity-0 transition-all duration-300 space-y-4 pt-2 border-t border-slate-800">
+                    <div id="targetCard" class="p-5 rounded-2xl border flex flex-col items-center text-center space-y-3 transition-all">
+                        <span class="text-xs font-semibold tracking-wider uppercase text-slate-400">Nota Mínima Necessária na N2 (Peso 2)</span>
+                        
+                        <div class="flex items-baseline space-x-2">
+                            <span id="targetScore" class="text-5xl font-extrabold tracking-tight font-mono text-amber-400">0.0</span>
+                            <span class="text-sm text-slate-400">/ 10.0</span>
+                        </div>
+
+                        <p id="targetStatusText" class="text-sm font-medium px-4 py-2 rounded-xl w-full">
+                            -
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-800/40 rounded-xl p-3.5 border border-slate-700/40 text-xs space-y-2 text-slate-400">
+                        <div class="flex justify-between">
+                            <span>Fórmula aplicada:</span>
+                            <span id="targetFormulaBreakdown" class="font-mono text-slate-300">N2 = (18 - N1) ÷ 2</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="pt-2 border-t border-slate-800/60">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="history" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        Histórico da Sessão
+                    </span>
+                    <button onclick="clearHistory()" id="clearHistBtn" class="hidden text-xs text-slate-500 hover:text-slate-300 transition">Limpar</button>
+                </div>
+                <div id="historyList" class="space-y-2 max-h-32 overflow-y-auto pr-1">
+                    <p id="emptyHistory" class="text-xs text-slate-600 text-center py-2 italic">Nenhum cálculo recente</p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Window Footer / Status Bar -->
+        <div class="bg-slate-950/60 px-5 py-2.5 text-xs text-slate-500 border-t border-slate-800 flex justify-between items-center">
+            <span>Status: Sistema Pronto</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Ativo</span>
+        </div>
+
+    </div>
+
+    <!-- Script Logic -->
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let historyData = [];
+
+        function switchTab(tab) {
+            hideAlert();
+            const calcTab = document.getElementById('tabCalc');
+            const targetTab = document.getElementById('tabTarget');
+            const calcView = document.getElementById('viewCalc');
+            const targetView = document.getElementById('viewTarget');
+
+            if (tab === 'calc') {
+                calcTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all bg-indigo-600 text-white shadow";
+                targetTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-white hover:bg-slate-800/60";
+                calcView.classList.remove('hidden');
+                targetView.classList.add('hidden');
+            } else {
+                targetTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all bg-indigo-600 text-white shadow";
+                calcTab.className = "flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-white hover:bg-slate-800/60";
+                targetView.classList.remove('hidden');
+                calcView.classList.add('hidden');
+            }
+        }
+
+        function updateDisplay() {
+            const n1 = document.getElementById('nota1').value;
+            const n2 = document.getElementById('nota2').value;
+            
+            document.getElementById('val1Display').textContent = n1 !== '' ? parseFloat(n1).toFixed(1) : '0.0';
+            document.getElementById('val2Display').textContent = n2 !== '' ? parseFloat(n2).toFixed(1) : '0.0';
+        }
+
+        function showAlert(message) {
+            const banner = document.getElementById('errorBanner');
+            const msgEl = document.getElementById('errorMessage');
+            msgEl.textContent = message;
+            banner.classList.remove('hidden');
+        }
+
+        function hideAlert() {
+            const banner = document.getElementById('errorBanner');
+            banner.classList.add('hidden');
+        }
+
+        function calculateGrade() {
+            hideAlert();
+
+            const n1Input = document.getElementById('nota1').value;
+            const n2Input = document.getElementById('nota2').value;
+
+            if (n1Input === '' || n2Input === '') {
+                showAlert('Por favor, preencha ambas as notas.');
+                return;
+            }
+
+            const n1 = parseFloat(n1Input);
+            const n2 = parseFloat(n2Input);
+
+            if (isNaN(n1) || isNaN(n2) || n1 < 0 || n1 > 10 || n2 < 0 || n2 > 10) {
+                showAlert('As notas devem ser valores válidos entre 0,0 e 10,0.');
+                return;
+            }
+
+            // Formula: [(Nota 1 * 1) + (Nota 2 * 2)] / 3
+            const weightedSum = (n1 * 1) + (n2 * 2);
+            const average = weightedSum / 3;
+            const roundedAvg = Math.round(average * 100) / 100;
+
+            // Show Result Section with animation
+            const resultSection = document.getElementById('resultSection');
+            resultSection.classList.remove('hidden');
+            setTimeout(() => {
+                resultSection.classList.remove('scale-95', 'opacity-0');
+                resultSection.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            // Display Final Score
+            document.getElementById('finalScore').textContent = roundedAvg.toFixed(2);
+            document.getElementById('formulaBreakdown').textContent = `[(${n1} × 1) + (${n2} × 2)] ÷ 3 = ${weightedSum.toFixed(1)} ÷ 3`;
+
+            // Status Check (Passing grade = 6)
+            const resultCard = document.getElementById('resultCard');
+            const statusBadge = document.getElementById('statusBadge');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+
+            if (roundedAvg >= 6.0) {
+                resultCard.className = "p-5 rounded-2xl border bg-emerald-950/20 border-emerald-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all";
+                statusBadge.className = "px-4 py-2.5 rounded-xl border bg-emerald-500/20 border-emerald-500/40 text-emerald-300 flex items-center space-x-2.5 font-semibold text-sm shadow-sm";
+                statusIcon.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>';
+                statusText.textContent = "Aprovado(a)";
+            } else {
+                resultCard.className = "p-5 rounded-2xl border bg-rose-950/20 border-rose-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 transition-all";
+                statusBadge.className = "px-4 py-2.5 rounded-xl border bg-rose-500/20 border-rose-500/40 text-rose-300 flex items-center space-x-2.5 font-semibold text-sm shadow-sm";
+                statusIcon.innerHTML = '<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i>';
+                statusText.textContent = "Reprovado(a)";
+            }
+
+            lucide.createIcons();
+            addToHistory(`Média N1:${n1} N2:${n2}`, roundedAvg.toFixed(2), roundedAvg >= 6.0);
+        }
+
+        function calculateRequiredN2() {
+            hideAlert();
+
+            const n1Input = document.getElementById('targetN1').value;
+            if (n1Input === '') {
+                showAlert('Por favor, informe a Nota 1.');
+                return;
+            }
+
+            const n1 = parseFloat(n1Input);
+            if (isNaN(n1) || n1 < 0 || n1 > 10) {
+                showAlert('A nota deve ser um valor válido entre 0,0 e 10,0.');
+                return;
+            }
+
+            // Target formula: (6 * 3 - N1) / 2 => (18 - N1) / 2
+            const requiredN2 = (18 - n1) / 2;
+            const roundedReq = Math.round(requiredN2 * 100) / 100;
+
+            const targetSection = document.getElementById('targetResultSection');
+            targetSection.classList.remove('hidden');
+            setTimeout(() => {
+                targetSection.classList.remove('scale-95', 'opacity-0');
+                targetSection.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            const scoreEl = document.getElementById('targetScore');
+            const statusEl = document.getElementById('targetStatusText');
+            const cardEl = document.getElementById('targetCard');
+            const breakdownEl = document.getElementById('targetFormulaBreakdown');
+
+            scoreEl.textContent = roundedReq <= 0 ? '0.0' : roundedReq.toFixed(2);
+            breakdownEl.textContent = `(18 - ${n1.toFixed(1)}) ÷ 2 = ${roundedReq.toFixed(2)}`;
+
+            if (roundedReq > 10) {
+                cardEl.className = "p-5 rounded-2xl border bg-rose-950/20 border-rose-500/30 flex flex-col items-center text-center space-y-3 transition-all";
+                scoreEl.className = "text-5xl font-extrabold tracking-tight font-mono text-rose-400";
+                statusEl.className = "text-sm font-medium px-4 py-2 rounded-xl w-full bg-rose-500/20 border border-rose-500/30 text-rose-300";
+                statusEl.textContent = "Atenção: Mesmo tirando 10 na N2, não é possível atingir a média 6,0. (Será necessária recuperação).";
+            } else if (roundedReq <= 0) {
+                cardEl.className = "p-5 rounded-2xl border bg-emerald-950/20 border-emerald-500/30 flex flex-col items-center text-center space-y-3 transition-all";
+                scoreEl.className = "text-5xl font-extrabold tracking-tight font-mono text-emerald-400";
+                statusEl.className = "text-sm font-medium px-4 py-2 rounded-xl w-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300";
+                statusEl.textContent = "Excelente! Sua Nota 1 já garantiu a aprovação mesmo tirando 0 na N2.";
+            } else {
+                cardEl.className = "p-5 rounded-2xl border bg-amber-950/20 border-amber-500/30 flex flex-col items-center text-center space-y-3 transition-all";
+                scoreEl.className = "text-5xl font-extrabold tracking-tight font-mono text-amber-400";
+                statusEl.className = "text-sm font-medium px-4 py-2 rounded-xl w-full bg-amber-500/20 border border-amber-500/30 text-amber-300";
+                statusEl.textContent = `Você precisa tirar no mínimo ${roundedReq.toFixed(1)} na N2 para passar com média 6,0.`;
+            }
+
+            addToHistory(`Meta N1:${n1}`, `Precisa N2: ${roundedReq.toFixed(2)}`, roundedReq <= 10);
+        }
+
+        function addToHistory(label, result, isSuccess) {
+            historyData.unshift({ 
+                label, 
+                result, 
+                isSuccess, 
+                time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+            });
+            if (historyData.length > 5) historyData.pop();
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const listEl = document.getElementById('historyList');
+            const emptyEl = document.getElementById('emptyHistory');
+            const clearBtn = document.getElementById('clearHistBtn');
+
+            if (historyData.length === 0) {
+                if (emptyEl) emptyEl.classList.remove('hidden');
+                clearBtn.classList.add('hidden');
+                // Remove dynamic history entries while keeping emptyHistory intact
+                const items = listEl.querySelectorAll('.history-item');
+                items.forEach(item => item.remove());
+                return;
+            }
+
+            if (emptyEl) emptyEl.classList.add('hidden');
+            clearBtn.classList.remove('hidden');
+
+            let html = '';
+            historyData.forEach(item => {
+                html += `
+                    <div class="history-item flex items-center justify-between bg-slate-800/40 border border-slate-700/50 px-3 py-2 rounded-xl text-xs">
+                        <div class="flex items-center space-x-3">
+                            <span class="font-mono text-slate-300 font-medium">${item.label}</span>
+                            <span class="text-slate-500">${item.time}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-mono font-bold text-white">${item.result}</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Remove existing dynamic items and re-append updated ones
+            const items = listEl.querySelectorAll('.history-item');
+            items.forEach(item => item.remove());
+            listEl.insertAdjacentHTML('beforeend', html);
+        }
+
+        function clearHistory() {
+            historyData = [];
+            renderHistory();
+        }
+
+        function resetForm() {
+            hideAlert();
+            document.getElementById('gradeForm').reset();
+            updateDisplay();
+            const resultSection = document.getElementById('resultSection');
+            resultSection.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                resultSection.classList.add('hidden');
+            }, 200);
+        }
+    </script>
+</body>
+</html>
